@@ -1,0 +1,47 @@
+const express = require("express");
+const bodyParser = require("body-parser");
+const { createClient } = require("@supabase/supabase-js");
+
+const app = express();
+app.use(bodyParser.urlencoded({ extended: false }));
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+app.post("/whatsapp", async (req, res) => {
+  const msg = req.body.Body;
+  const from = req.body.From;
+
+  let department = "";
+
+  if (msg.toLowerCase().includes("housekeeping")) {
+    department = "Housekeeping";
+  } 
+  else if (msg.toLowerCase().includes("reception")) {
+    department = "Reception";
+  } 
+  else if (msg.toLowerCase().includes("room service")) {
+    department = "Room Service";
+  }
+
+  if (department) {
+    await supabase.from("tasks").insert([
+      {
+        guest_number: from,
+        department: department,
+        request: msg,
+        status: "Pending"
+      }
+    ]);
+
+    res.send(`<Response><Message>Your request sent to ${department}. Thank you!</Message></Response>`);
+  } else {
+    res.send(`<Response><Message>Type: Housekeeping / Reception / Room Service</Message></Response>`);
+  }
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server running");
+});
